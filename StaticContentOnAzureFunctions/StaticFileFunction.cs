@@ -11,6 +11,10 @@ namespace StaticContentOnAzureFunctions;
 public sealed class StaticFileFunction
 {
     private const string CacheControlValue = "public, max-age=3600";
+    private const string CorsAllowOriginValue = "*";
+    private const string CorsAllowMethodsValue = "GET, OPTIONS";
+    private const string CorsAllowHeadersValue = "Content-Type, Accept, Accept-Encoding, If-None-Match";
+    private const string CorsMaxAgeValue = "86400";
 
     private readonly StaticFileService _staticFileService;
 
@@ -21,9 +25,23 @@ public sealed class StaticFileFunction
 
     [Function("StaticFile")]
     public IActionResult Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "{*path}")] HttpRequest request,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "options", Route = "{*path}")] HttpRequest request,
         string? path)
     {
+        var response = request.HttpContext.Response;
+
+        // Add CORS header to every response
+        response.Headers[HeaderNames.AccessControlAllowOrigin] = CorsAllowOriginValue;
+
+        // Handle CORS preflight request
+        if (HttpMethods.IsOptions(request.Method))
+        {
+            response.Headers[HeaderNames.AccessControlAllowMethods] = CorsAllowMethodsValue;
+            response.Headers[HeaderNames.AccessControlAllowHeaders] = CorsAllowHeadersValue;
+            response.Headers[HeaderNames.AccessControlMaxAge] = CorsMaxAgeValue;
+            return new StatusCodeResult(StatusCodes.Status204NoContent);
+        }
+
         var urlPath = "/" + (path ?? string.Empty).TrimStart('/');
 
         if (!_staticFileService.TryGetFile(urlPath, out var file) || file is null)
@@ -54,11 +72,11 @@ public sealed class StaticFileFunction
             EntityTag = EntityTagHeaderValue.Parse(file.ETag),
         };
 
-        request.HttpContext.Response.Headers[HeaderNames.CacheControl] = CacheControlValue;
+        response.Headers[HeaderNames.CacheControl] = CacheControlValue;
 
         if (useGzip)
         {
-            request.HttpContext.Response.Headers[HeaderNames.ContentEncoding] = "gzip";
+            response.Headers[HeaderNames.ContentEncoding] = "gzip";
         }
 
         return result;
