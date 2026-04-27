@@ -69,22 +69,22 @@ graph TB
 
 ```mermaid
 flowchart TD
-    Start([アプリケーション起動]) --> Register["Program.cs:\nStaticFileService を\nシングルトン登録"]
-    Register --> Ctor["StaticFileService コンストラクタ\nLoadFiles(contentDirectory) 呼び出し"]
-    Ctor --> Exists{Content/ ディレクトリが\n存在するか?}
+    Start([アプリケーション起動]) --> Register["Program.cs: StaticFileService をシングルトン登録"]
+    Register --> Ctor["StaticFileService コンストラクタLoadFiles(contentDirectory) 呼び出し"]
+    Ctor --> Exists{Content/ ディレクトリが存在するか?}
     Exists -- No --> EmptyCache["空のキャッシュを返す"]
-    Exists -- Yes --> Enumerate["ディレクトリ内の全ファイルを再帰列挙\n(サブディレクトリ含む)"]
+    Exists -- Yes --> Enumerate["ディレクトリ内の全ファイルを再帰列挙(サブディレクトリ含む)"]
     Enumerate --> ForEach["各ファイルに対してループ処理"]
     ForEach --> ReadBytes["ファイルを byte[] として読み込み"]
-    ReadBytes --> CalcETag["SHA-256 ハッシュから ETag を計算\n(小文字16進数, ダブルクォート付き)"]
+    ReadBytes --> CalcETag["SHA-256 ハッシュから ETag を計算(小文字16進数, ダブルクォート付き)"]
     CalcETag --> GetMime["拡張子から MIME タイプを判定"]
-    GetMime --> GzipCheck{gzip 対象拡張子か?\n(.html .js .css .json .txt)}
-    GzipCheck -- Yes --> Compress["GZipStream (CompressionLevel.Optimal) で\ngzip 圧縮バージョンを生成"]
+    GetMime --> GzipCheck{gzip 対象拡張子か?(.html .js .css .json .txt)}
+    GzipCheck -- Yes --> Compress["GZipStream (CompressionLevel.Optimal) でgzip 圧縮バージョンを生成"]
     GzipCheck -- No --> NoGzip["GzipContent = null"]
     Compress --> Store
     NoGzip --> Store["CachedFile を辞書に格納\nキー: /相対パス (大文字小文字区別なし)"]
     Store --> ForEach
-    ForEach --> Done([初期化完了\n以降はメモリからのみ応答])
+    ForEach --> Done([初期化完了以降はメモリからのみ応答])
     EmptyCache --> Done
 ```
 
@@ -95,17 +95,17 @@ flowchart TD
 ```mermaid
 flowchart TD
     Req(["HTTP GET /{*path}"])
-    Norm["URLパスを正規化\n'/' + path.TrimStart('/')"]
-    TryGet{TryGetFile で\nキャッシュを検索}
-    GetIndex{GetIndexFile で\nindex.html を取得}
+    Norm["URLパスを正規化'/' + path.TrimStart('/')"]
+    TryGet{TryGetFile でキャッシュを検索}
+    GetIndex{GetIndexFile でindex.html を取得}
     Return404["404 Not Found を返す"]
-    CheckETag{If-None-Match ヘッダが\nファイルの ETag と一致?}
+    CheckETag{If-None-Match ヘッダがファイルの ETag と一致?}
     Return304["304 Not Modified を返す"]
-    CheckGzip{Accept-Encoding に 'gzip' を含み\nかつ GzipContent が存在する?}
-    ServeGzip["レスポンスボディ = GzipContent\nContent-Encoding: gzip ヘッダを付与"]
+    CheckGzip{Accept-Encoding に 'gzip' を含みかつ GzipContent が存在する?}
+    ServeGzip["レスポンスボディ = GzipContent Content-Encoding: gzip ヘッダを付与"]
     ServeRaw["レスポンスボディ = Content (非圧縮)"]
-    SetHeaders["ETag ヘッダをセット\nCache-Control: public, max-age=3600 をセット"]
-    Return200["200 OK + ファイル内容を返す\n(Content-Type は MIME タイプ)"]
+    SetHeaders["ETag ヘッダをセットCache-Control: public, max-age=3600 をセット"]
+    Return200["200 OK + ファイル内容を返す(Content-Type は MIME タイプ)"]
 
     Req --> Norm --> TryGet
     TryGet -- ファイルが見つかった --> CheckETag
