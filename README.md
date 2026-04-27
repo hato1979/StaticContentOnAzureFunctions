@@ -94,7 +94,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Req(["HTTP GET /{*path}"])
+    Req(["HTTP GET or OPTIONS /{*path}"])
+    SetCorsOrigin["Access-Control-Allow-Origin: * をセット"]
+    IsOptions{OPTIONS リクエスト?}
+    ReturnPreflight["204 No Content + プリフライトヘッダを返す\n(Allow-Methods, Allow-Headers, Max-Age)"]
     Norm["URLパスを正規化'/' + path.TrimStart('/')"]
     TryGet{TryGetFile でキャッシュを検索}
     GetIndex{GetIndexFile でindex.html を取得}
@@ -107,7 +110,9 @@ flowchart TD
     SetHeaders["ETag ヘッダをセットCache-Control: public, max-age=3600 をセット"]
     Return200["200 OK + ファイル内容を返す(Content-Type は MIME タイプ)"]
 
-    Req --> Norm --> TryGet
+    Req --> SetCorsOrigin --> IsOptions
+    IsOptions -- Yes --> ReturnPreflight
+    IsOptions -- No --> Norm --> TryGet
     TryGet -- ファイルが見つかった --> CheckETag
     TryGet -- 見つからない --> GetIndex
     GetIndex -- index.html あり --> CheckETag
@@ -154,7 +159,7 @@ flowchart TD
 | Function 名 | `StaticFile` |
 | トリガー | HTTP トリガー |
 | 認証レベル | `Anonymous` (認証不要) |
-| 受け付ける HTTP メソッド | `GET` のみ |
+| 受け付ける HTTP メソッド | `GET`, `OPTIONS` |
 | ルート | `{*path}` (ワイルドカード, ルート `/` を含む全パスにマッチ) |
 
 ---
@@ -169,6 +174,10 @@ flowchart TD
 | `ETag` | `"<SHA-256ハッシュ>"` | 常に付与 |
 | `Cache-Control` | `public, max-age=3600` | 200 OK 応答時のみ (304 応答には付与されない) |
 | `Content-Encoding` | `gzip` | gzip 圧縮コンテンツを返す場合のみ |
+| `Access-Control-Allow-Origin` | `*` | 常に付与 |
+| `Access-Control-Allow-Methods` | `GET, OPTIONS` | OPTIONS プリフライトリクエスト時のみ |
+| `Access-Control-Allow-Headers` | `Content-Type, Accept, Accept-Encoding, If-None-Match` | OPTIONS プリフライトリクエスト時のみ |
+| `Access-Control-Max-Age` | `86400` | OPTIONS プリフライトリクエスト時のみ |
 
 #### リクエストヘッダの処理
 
@@ -176,6 +185,22 @@ flowchart TD
 |---|---|
 | `If-None-Match` | ファイルの ETag と一致する場合、`304 Not Modified` を返してボディ送信を省略する |
 | `Accept-Encoding` | `gzip` を含む場合、gzip 圧縮済みコンテンツを優先して返す |
+| `Origin` | CORS プリフライト・通常リクエストのいずれでも `Access-Control-Allow-Origin: *` を返す |
+
+---
+
+### CORS サポート
+
+すべての HTTP レスポンスに `Access-Control-Allow-Origin: *` ヘッダを付与することで、任意のオリジンからのクロスオリジンリクエストを許可します。
+
+ブラウザがプリフライトリクエスト (`OPTIONS`) を送信した場合は、`204 No Content` を返してボディ送信を省略し、以下のヘッダを付与します。
+
+| ヘッダ | 値 |
+|---|---|
+| `Access-Control-Allow-Origin` | `*` |
+| `Access-Control-Allow-Methods` | `GET, OPTIONS` |
+| `Access-Control-Allow-Headers` | `*` |
+| `Access-Control-Max-Age` | `86400` (秒) |
 
 ---
 
