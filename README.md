@@ -78,7 +78,7 @@ flowchart TD
     ForEach --> ReadBytes["ファイルを byte[] として読み込み"]
     ReadBytes --> CalcETag["SHA-256 ハッシュから ETag を計算(小文字16進数, ダブルクォート付き)"]
     CalcETag --> GetMime["拡張子から MIME タイプを判定"]
-    GetMime --> GzipCheck{gzip 対象拡張子か?(.html .js .css .json .txt)}
+    GetMime --> GzipCheck{"gzip 対象拡張子か?(.html .js .css .json .txt)"}
     GzipCheck -- Yes --> Compress["GZipStream (CompressionLevel.Optimal) でgzip 圧縮バージョンを生成"]
     GzipCheck -- No --> NoGzip["GzipContent = null"]
     Compress --> Store
