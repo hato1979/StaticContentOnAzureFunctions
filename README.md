@@ -1,0 +1,2 @@
+# StaticContentOnAzureFunctions
+Azure FunctionsでバンドルされたSPAのフロントエンド静的コンテンツを返すC# プログラムです。
