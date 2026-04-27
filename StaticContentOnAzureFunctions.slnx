@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="StaticContentOnAzureFunctions.Tests/StaticContentOnAzureFunctions.Tests.csproj" />
+  <Project Path="StaticContentOnAzureFunctions/StaticContentOnAzureFunctions.csproj" />
+</Solution>
